@@ -1,15 +1,248 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#00695c">
-<link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css?v=2.0.0">
-<title>KMB Real-time Arrivals</title></head><body>
-<header><div class="hd"><h1 data-tr="title">KMB Real-time Arrivals</h1><div class="langw"><label for="lang" class="sr" data-tr="lang">Language</label><span class="lcode" aria-hidden="true"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.3"/><path d="M1.7 8h12.6M8 1.7c-3.2 3.6-3.2 9 0 12.6M8 1.7c3.2 3.6 3.2 9 0 12.6"/></g></svg><span id="lcodeT">EN</span></span><select id="lang" aria-label="Language"></select></div></div></header>
-<div class="tabs"><button id="t1" class="on" data-tr="tab1">All routes</button><button id="t2" data-tr="tab2">My Favourites</button></div>
-<div id="vR"><div class="bar"><input id="rq" type="search" placeholder="Route or place (e.g. 1A, Mong Kok)" data-ip="rsearch" autocapitalize="characters" autocomplete="off"></div>
-<div id="recent" class="chips"></div><div id="rst" class="stl" data-tr="loading">Loading…</div><div id="rlist"></div><div id="rmore"></div></div>
-<div id="vS" style="display:none"><div class="bar"><button id="back" data-tr="back">← All routes</button><span id="rno" class="rno"></span><button id="swap" data-tr="swap">⇄ Other direction</button></div>
-<div class="bar"><select id="dir" aria-label="Direction"></select></div><div id="dtxt" class="stl dtxt"></div>
-<div class="bar"><input id="q" type="search" placeholder="Search stops…" data-ip="search"><button id="r" data-tr="refresh">Refresh</button></div>
-<div id="st" class="stl"></div><div id="list"></div></div>
-<div id="v2" style="display:none"><div id="fst" class="stl"></div><div id="flist"></div></div>
-<footer id="src"></footer>
-<script src="app.js?v=2.0.0"></script>
+<link rel="icon" href="data:,"><title>KMB Real-time Arrivals</title><style>
+*{box-sizing:border-box}body{font-family:sans-serif;margin:0;background:#f4f4f4}header{background:#00695c;color:#fff;padding:12px}h1{margin:0;font-size:1.3em}
+.bar{padding:8px;display:flex;gap:6px;flex-wrap:wrap}select,input,button{font-size:1em;padding:6px;max-width:100%}input{flex:1;min-width:120px}
+.s{background:#fff;margin:6px 8px;padding:10px;border-radius:8px}.n{font-weight:bold}.e{color:#555;font-size:.85em}.t{color:#00695c;font-weight:bold;margin-top:4px}
+.tabs{display:flex}.tabs button{flex:1;border:0;padding:10px;background:#ddd}.tabs button.on{background:#fff;font-weight:bold;color:#00695c}.del{float:right;background:#fff;border:1px solid #ccc;border-radius:6px}.err{color:#8a4b00;padding:0 10px}#fst{padding:0 10px;font-size:.85em}#st{padding:0 10px;font-size:.85em;color:#333}
+.hd{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:nowrap}
+h1{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.langw{position:relative;display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:32px;padding:0 .1rem;cursor:pointer;flex:0 0 auto;color:#fff}
+.langw .lcode{display:inline-flex;align-items:center;gap:.2rem;font-size:.8rem;font-weight:700;border:1px solid #fff;border-radius:1rem;padding:.1rem .4rem;line-height:1.2;white-space:nowrap;background:rgba(255,255,255,.12)}
+.langw .lcode svg{width:.85rem;height:.85rem}
+.langw select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:1rem;min-height:0}
+.langw:focus-within .lcode{outline:3px solid #80cbc4;outline-offset:2px}
+.sr{position:absolute;left:-9999px}
+.s{cursor:pointer;-webkit-tap-highlight-color:transparent}.s:active{background:#e8f5f3}
+.s.on{outline:2px solid #00695c;outline-offset:1px}
+#detail{display:none;padding:0 0 16px}.dbar{display:flex;align-items:center;gap:8px;padding:8px}
+#dback{background:#fff;border:1px solid #ccc;border-radius:6px;padding:6px 10px}
+.dcard{background:#fff;margin:0 8px 8px;padding:10px;border-radius:8px}
+.map-panel{margin:0 8px;border-radius:10px;overflow:hidden;background:#e0ebe9;box-shadow:0 1px 3px #0002;position:relative}
+#dmap{height:250px;width:100%;z-index:0}
+.geo-msg{font-size:.8rem;color:#555;padding:6px 10px;min-height:1.2em}
+.geo-msg.err{color:#8a4b00}
+.geo-msg.loading::before{content:"";display:inline-block;width:.7em;height:.7em;margin-right:.4em;border:2px solid #00695c;border-top-color:transparent;border-radius:50%;vertical-align:-1px}
+.map-missing{padding:24px 12px;text-align:center;color:#666;font-size:.9em}
+.leaflet-container{font:inherit}
+.mk-stop,.mk-me{display:block;width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px #0005}
+.mk-stop{background:#00695c}
+.mk-me{background:#0277bd}
+@media (prefers-reduced-motion:no-preference){
+.map-panel.enter{animation:mapIn .35s ease-out both}
+@keyframes mapIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.mk-stop.pop{animation:stopPop .45s ease-out both}
+@keyframes stopPop{0%{transform:scale(0)}70%{transform:scale(1.18)}100%{transform:scale(1)}}
+.mk-me.pulse{animation:mePulse 2.2s ease-in-out infinite}
+@keyframes mePulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.15);opacity:.82}}
+.geo-msg.fade{animation:fadeIn .3s ease-out both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.geo-msg.loading::before{animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+}
+@media (prefers-reduced-motion:reduce){
+.map-panel.enter{opacity:1}
+.mk-stop.pop,.mk-me.pulse{animation:none}
+.geo-msg.loading::before{animation:none;opacity:.6}
+}
+</style>
+<link rel="stylesheet" href="assets/leaflet.css">
+</head><body>
+<header><div class="hd"><h1 data-tr="title">KMB Real-time Arrivals</h1><div class="langw"><label for="lang" class="sr" data-tr="lang">Language</label><span class="lcode" aria-hidden="true"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6.3"/><path d="M1.7 8h12.6M8 1.7c-3.2 3.6-3.2 9 0 12.6M8 1.7c3.2 3.6 3.2 9 0 12.6"/></g></svg><span id="lcodeT">EN</span></span><select id="lang" aria-label="Language"></select></div></div><div id="rt"></div></header>
+<div class="tabs"><button id="t1" class="on" data-tr="tab1">Route 284</button><button id="t2" data-tr="tab2">My Favourites</button></div><div id="v1"><div class="bar"><select id="dir"></select><select id="pick"><option value="" data-tr="allStops">All stops</option></select><input id="q" placeholder="Search stops…" data-ip="search"><button id="r" data-tr="refresh">Refresh</button></div>
+<div id="st" data-tr="loading">Loading…</div><div id="list"></div></div>
+<div id="v2" style="display:none"><div class="bar"><input id="fr" placeholder="Enter a route (e.g. 1A)" data-ip="frPh" autocapitalize="characters"><button id="fgo" data-tr="fgo">Find route</button></div>
+<div class="bar"><select id="fdir" style="display:none"></select><select id="fstop" style="display:none"></select><button id="fsave" style="display:none" data-tr="fsave">Add to favourites</button></div>
+<div id="ferr" class="err"></div><div id="fst"></div><div id="flist"></div></div>
+<div id="detail" style="display:none"><div class="dbar"><button type="button" id="dback" data-tr="back">← Back</button></div><div class="dcard" id="dinfo"></div><div class="map-panel" id="dmapPanel"><div id="dmap" role="img" aria-label="Map"></div><div id="dgeo" class="geo-msg" aria-live="polite"></div></div></div>
+<script>
+// ---- i18n ----
+const LANGS=[["zh-Hant","繁體中文"],["zh-Hans","简体中文"],["en","English"],["ja","日本語"],["mi","Te Reo Māori"],["ko","한국어"]];
+const I18N={
+"zh-Hant":{colon:"：",title:"九巴即時到站",lang:"語言",tab1:"284 全線",tab2:"我的收藏",allStops:"全部車站",search:"搜尋車站…",refresh:"更新",loading:"載入中…",frPh:"輸入路線（例如 1A）",fgo:"搜尋路線",fsave:"加入收藏",
+ upd:"最後更新：{t}（九巴資料時間 {d}，每30秒自動更新）",loadFail:"載入失敗：{e}",failShort:"載入失敗",O:"去程",I:"回程",special:"（特別班 {n}）",mins:"{m} 分鐘",arriving:"即將抵達",noSvc:"暫無班次",noEta:"暫無班次資料",
+ enterRoute:"請輸入路線號碼",notFound:"搵唔到九巴路線「{r}」",dup:"已經收藏咗",noFavs:"未有收藏，請喺上面加入。",del:"刪除",to:"往 {d}",back:"← 返回",mapStop:"車站",mapMe:"你的位置",geoLoading:"定位中…",geoDenied:"未能取得你的位置（可在瀏覽器允許定位）",geoFail:"定位失敗",noCoord:"未有資料",mapAria:"車站地圖"},
+"zh-Hans":{colon:"：",title:"九巴实时到站",lang:"语言",tab1:"284 全线",tab2:"我的收藏",allStops:"全部车站",search:"搜索车站…",refresh:"刷新",loading:"加载中…",frPh:"输入路线（例如 1A）",fgo:"搜索路线",fsave:"加入收藏",
+ upd:"最后更新：{t}（九巴数据时间 {d}，每30秒自动刷新）",loadFail:"加载失败：{e}",failShort:"加载失败",O:"去程",I:"回程",special:"（特别班 {n}）",mins:"{m} 分钟",arriving:"即将到达",noSvc:"暂无班次",noEta:"暂无班次数据",
+ enterRoute:"请输入路线号码",notFound:"找不到九巴路线「{r}」",dup:"已经收藏了",noFavs:"还没有收藏，请在上面添加。",del:"删除",to:"往 {d}",back:"← 返回",mapStop:"车站",mapMe:"你的位置",geoLoading:"定位中…",geoDenied:"未能取得你的位置（可在浏览器允许定位）",geoFail:"定位失败",noCoord:"未有资料",mapAria:"车站地图"},
+"en":{colon:": ",title:"KMB Real-time Arrivals",lang:"Language",tab1:"Route 284",tab2:"My Favourites",allStops:"All stops",search:"Search stops…",refresh:"Refresh",loading:"Loading…",frPh:"Enter a route (e.g. 1A)",fgo:"Find route",fsave:"Add to favourites",
+ upd:"Last updated: {t} (KMB data time {d}; auto-refresh every 30 s)",loadFail:"Failed to load: {e}",failShort:"Failed to load",O:"Outbound",I:"Inbound",special:" (special service {n})",mins:"{m} min",arriving:"Arriving",noSvc:"No service",noEta:"No arrival information",
+ enterRoute:"Please enter a route number",notFound:"KMB route “{r}” not found",dup:"Already in your favourites",noFavs:"No favourites yet. Add one above.",del:"Delete",to:"To {d}",back:"← Back",mapStop:"Stop",mapMe:"You are here",geoLoading:"Locating…",geoDenied:"Could not get your location (allow location in the browser)",geoFail:"Location failed",noCoord:"No data",mapAria:"Stop map"},
+"ja":{colon:"：",title:"KMB バス リアルタイム到着情報",lang:"言語",tab1:"284系統 全停留所",tab2:"お気に入り",allStops:"すべての停留所",search:"停留所を検索…",refresh:"更新",loading:"読み込み中…",frPh:"路線を入力（例：1A）",fgo:"路線を検索",fsave:"お気に入りに追加",
+ upd:"最終更新：{t}（KMBデータ時刻 {d}、30秒ごとに自動更新）",loadFail:"読み込みに失敗しました：{e}",failShort:"読み込み失敗",O:"往路",I:"復路",special:"（特別便 {n}）",mins:"{m} 分",arriving:"まもなく到着",noSvc:"運行なし",noEta:"到着情報なし",
+ enterRoute:"路線番号を入力してください",notFound:"KMBの路線「{r}」が見つかりません",dup:"すでにお気に入りに登録済みです",noFavs:"お気に入りはまだありません。上で追加してください。",del:"削除",to:"{d} 行き",back:"← 戻る",mapStop:"停留所",mapMe:"現在地",geoLoading:"位置情報を取得中…",geoDenied:"現在地を取得できません（ブラウザで位置情報を許可してください）",geoFail:"位置情報の取得に失敗しました",noCoord:"データなし",mapAria:"停留所マップ"},
+"mi":{colon:": ",title:"Ngā Taenga Pahi KMB i te Wā Tūturu",lang:"Reo",tab1:"Ara 284 katoa",tab2:"Aku Tino Pai",allStops:"Ngā tūnga katoa",search:"Rapua he tūnga…",refresh:"Whakahou",loading:"E uta ana…",frPh:"Tāurua he ara (hei tauira, 1A)",fgo:"Rapua te ara",fsave:"Tāpiri ki aku tino pai",
+ upd:"Whakahounga whakamutunga: {t} (wā raraunga KMB {d}; ka whakahou aunoa ia 30 hēkona)",loadFail:"I rahua te uta: {e}",failShort:"I rahua te uta",O:"Haere atu",I:"Hoki mai",special:" (ratonga motuhake {n})",mins:"{m} meneti",arriving:"Ka tae mai ināianei",noSvc:"Kāore he ratonga",noEta:"Kāore he mōhiohio taenga",
+ enterRoute:"Tēnā, tāurua he nama ara",notFound:"Kāore i kitea te ara KMB “{r}”",dup:"Kei roto kē i aku tino pai",noFavs:"Kāore anō kia whai tino pai. Tāpirihia tētahi i runga ake.",del:"Mukua",to:"Ki {d}",back:"← Hoki",mapStop:"Tūnga",mapMe:"Kei konei koe",geoLoading:"E kimi ana i tō tūnga…",geoDenied:"Kāore i taea tō tūnga (whakaaetia te tūnga i te pūtirotiro)",geoFail:"I rahua te kimi tūnga",noCoord:"Kāore he raraunga",mapAria:"Mahere tūnga"},
+"ko":{colon:": ",title:"KMB 버스 실시간 도착 정보",lang:"언어",tab1:"284번 전체 노선",tab2:"즐겨찾기",allStops:"모든 정류장",search:"정류장 검색…",refresh:"새로고침",loading:"불러오는 중…",frPh:"노선 입력 (예: 1A)",fgo:"노선 검색",fsave:"즐겨찾기에 추가",
+ upd:"마지막 업데이트: {t} (KMB 데이터 시각 {d}, 30초마다 자동 업데이트)",loadFail:"불러오기 실패: {e}",failShort:"불러오기 실패",O:"가는 방향",I:"오는 방향",special:" (특별편 {n})",mins:"{m}분",arriving:"곧 도착",noSvc:"운행 없음",noEta:"도착 정보 없음",
+ enterRoute:"노선 번호를 입력하세요",notFound:"KMB 노선 “{r}”을(를) 찾을 수 없습니다",dup:"이미 즐겨찾기에 있습니다",noFavs:"즐겨찾기가 없습니다. 위에서 추가하세요.",del:"삭제",to:"{d} 방면",back:"← 뒤로",mapStop:"정류장",mapMe:"현재 위치",geoLoading:"위치 확인 중…",geoDenied:"위치를 가져올 수 없습니다（브라우저에서 위치 허용）",geoFail:"위치 확인 실패",noCoord:"데이터 없음",mapAria:"정류장 지도"}};
+// 九巴備註（rmk）翻譯：中文／英文用 API 自帶，日／韓／毛利按英文常見備註翻譯，其他就顯示英文
+const RMK={ja:[[/^Scheduled Bus$/i,"時刻表上の便"],[/^(Final|Last) Bus$/i,"最終便"],[/^Delayed journey from (.+)$/i,"$1 から遅延"]],
+ ko:[[/^Scheduled Bus$/i,"시간표 운행"],[/^(Final|Last) Bus$/i,"막차"],[/^Delayed journey from (.+)$/i,"$1에서 지연"]],
+ mi:[[/^Scheduled Bus$/i,"Pahi kua whakaritea"],[/^(Final|Last) Bus$/i,"Pahi whakamutunga"],[/^Delayed journey from (.+)$/i,"Kua tōmuri mai i $1"]]};
+const LCODE={'zh-Hant':'繁','zh-Hans':'简',en:'EN',ja:'日',mi:'Mā',ko:'한'};
+let LANG=localStorage.getItem('kmbLang');if(!I18N[LANG])LANG='en';
+const T=(k,v={})=>(I18N[LANG][k]??I18N.en[k]??k).replace(/\{(\w+)\}/g,(_,x)=>v[x]??'');
+// 繁→簡後備對照（由九巴全部站名／路線名 name_tc↔name_sc 生成；API 有 name_sc 就直接用）
+const T2S=(()=>{const [a,b]="園總榮樓馬遊樂場體館東頭偉龍賈達勵書協學長倫轉車間碼寶靈恆豐郵愛聖醫圍劇強橫業曉麗觀創紀灣啟頤崗譽華處硤閣蘇蘿楊鴉蘭亞鄭禮讓賽會診療鵑興電鐘則黃營盤徑島義澤開獅嶺滿貴鴻紅鶴獲寧廟奧窩廣肅衛雲貫鳳張慶鑽運動畢祐廈蓮淨鐸順楓樹暉遠臺輔導機鸞維鄉氣硃聯濤匯鐵廠麼連區計劃貿稅務歷緻潔璽銘輪橋兒濱發眾勞資審藍當鯉魚門軍購勝萬實謙圖軒吳錦貢櫸臨悅譚珮諾駿凱戲欽輝鵲隊韻頌將墳風綜農員祿環來迴瑤堯瑪鹹領報國籬歡蔭磚隴饒貝棟專競統壩護盧葉濟綠圓纜網戶訓練斬誌碩議烏遜瀝職聽灝顯誠瑩麵壽萊瀅駕駛掃簡約欖灘點邊鍾財養羅鳴莊號變錢盞欄許願較謝銀舊賦濕巒藝翹賞牽覺娛傑爾銅鑼頓積蘆級親賢貨漁漢輸顏繡歐範別訊澗鹽躍響昇疊揚滾瓏兩塊檳線騰見調蠔儉麥鯽燒際堅塢師釗孫閘飛鴨賓僑陳類凍數陞鰂產進對視鵬邁湯釆單宮晉詩團時覽菴嶼幹檢暢‧薈樞紐記飲庫經媽|园总荣楼马游乐场体馆东头伟龙贾达励书协学长伦转车间码宝灵恒丰邮爱圣医围剧强横业晓丽观创纪湾启颐岗誉华处硖阁苏萝杨鸦兰亚郑礼让赛会诊疗鹃兴电钟则黄营盘径岛义泽开狮岭满贵鸿红鹤获宁庙奥窝广肃卫云贯凤张庆钻运动毕佑厦莲净铎顺枫树晖远台辅导机鸾维乡气朱联涛汇铁厂么连区计划贸税务历致洁玺铭轮桥儿滨发众劳资审蓝当鲤鱼门军购胜万实谦图轩吴锦贡榉临悦谭佩诺骏凯戏钦辉鹊队韵颂将坟风综农员禄环来回瑶尧玛咸领报国篱欢荫砖陇饶贝栋专竞统坝护卢叶济绿圆缆网户训练斩志硕议乌逊沥职听灏显诚莹面寿莱滢驾驶扫简约榄滩点边钟财养罗鸣庄号变钱盏栏许愿较谢银旧赋湿峦艺翘赏牵觉娱杰尔铜锣顿积芦级亲贤货渔汉输颜绣欧范别讯涧盐跃响升叠扬滚珑两块槟线腾见调蚝俭麦鲫烧际坚坞师钊孙闸飞鸭宾侨陈类冻数升鲗产进对视鹏迈汤采单宫晋诗团时览庵屿干检畅·荟枢纽记饮库经妈".split('|');const m={};[...a].forEach((c,i)=>m[c]=[...b][i]);return m})();
+const t2s=s=>[...(s||'')].map(c=>T2S[c]||c).join('');
+const zh=()=>LANG.startsWith('zh');
+const nm=(o,k)=>!o?'':LANG==='zh-Hant'?fx(o[k+'_tc']):LANG==='zh-Hans'?(o[k+'_sc']||t2s(fx(o[k+'_tc']))):(o[k+'_en']||fx(o[k+'_tc']));
+const nm2=(o,k)=>!o?'':zh()?(o[k+'_en']||''):fx(o[k+'_tc']); // 第二行：中文版顯示英文，其他語言顯示中文原名
+const rmk=e=>{if(!e.rmk_tc)return '';if(LANG==='zh-Hant')return e.rmk_tc;if(LANG==='zh-Hans')return e.rmk_sc||t2s(e.rmk_tc);const en=e.rmk_en||e.rmk_tc;
+ for(const [re,to] of (RMK[LANG]||[]))if(re.test(en))return en.replace(re,to);return en};
+const tm=d=>d.toLocaleTimeString('en-GB',{hour12:false,timeZone:'Asia/Hong_Kong'});
+</script>
+<script>
+const A='https://data.etabus.gov.hk/v1/transport/kmb/';const j=u=>fetch(A+u).then(r=>r.json());
+let stops={},names={},eta=[],routes={},lastSt=null;
+const fx=t=>(t||'').replace(/巿/g,'市');
+async function init(){const etaP=load();try{names=JSON.parse(localStorage.getItem('kmb284names')||'{}')}catch(e){names={}}
+ const info=await Promise.all([['outbound','O'],['inbound','I']].map(async([b,d])=>{const [r,rs]=await Promise.all([j('route/284/'+b+'/1'),j('route-stop/284/'+b+'/1')]);return {d,r,rs}}));
+ const need=new Set();info.forEach(({d,r,rs})=>{if(r.data&&r.data.orig_tc&&rs.data&&rs.data.length){routes[d]=r.data;stops[d]=rs.data;rs.data.forEach(s=>{if(!names[s.stop])need.add(s.stop)})}});
+ await Promise.all([...need].map(async id=>{names[id]=(await j('stop/'+id)).data}));try{localStorage.setItem('kmb284names',JSON.stringify(names))}catch(e){}
+ fillDir();fill();await etaP;render();setInterval(load,30000)}
+function fillDir(){const v=dir.value;dir.length=0;['O','I'].forEach(d=>{if(routes[d])dir.add(new Option(T(d)+T('colon')+nm(routes[d],'orig')+' → '+nm(routes[d],'dest'),d))});if(v)dir.value=v}
+function fill(){const v=pick.value;pick.length=1;pick.options[0].text=T('allStops');(stops[dir.value]||[]).forEach(s=>pick.add(new Option(s.seq+'. '+nm(names[s.stop],'name'),s.seq)));if(v&&[...pick.options].some(o=>o.value==v))pick.value=v;render()}
+function showSt(){if(!lastSt)return;st.textContent=lastSt.err?T('loadFail',{e:lastSt.err}):T('upd',{t:tm(lastSt.now),d:lastSt.ts?tm(lastSt.ts):'—'})}
+async function load(){try{const r=await j('route-eta/284/1');eta=r.data||[];lastSt={now:new Date(),ts:eta.length&&eta[0].data_timestamp?new Date(eta[0].data_timestamp):null};showSt();render()}catch(e){lastSt={err:String(e)};showSt()}}
+function fmt(e){if(!e.eta)return rmk(e)||T('noSvc');const m=Math.round((new Date(e.eta)-Date.now())/60000);const hm=new Date(e.eta).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Hong_Kong'});const k=rmk(e);return (m<=0?T('arriving'):T('mins',{m}))+' ('+hm+')'+(k?' '+k:'')}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function render(){if(!dir.options.length)return;const d=dir.value,q=qv(),p=pick.value;list.innerHTML='';(stops[d]||[]).forEach(s=>{const n=names[s.stop];if(p&&s.seq!=p)return;if(q&&!((n.name_tc+n.name_en+(n.name_sc||t2s(n.name_tc))).toLowerCase().includes(q)))return;
+ const es=eta.filter(e=>e.dir==d&&e.seq==+s.seq&&!(e.eta&&new Date(e.eta)<Date.now()-120000));const el=document.createElement('div');el.className='s';el.setAttribute('role','button');el.tabIndex=0;
+ el.innerHTML='<div class="n" data-raw>'+s.seq+'. '+esc(nm(n,'name'))+'</div><div class="e" data-raw>'+esc(nm2(n,'name'))+'</div><div class="t">'+(es.length?es.map(fmt).map(esc).join('<br>'):T('noEta'))+'</div>';
+ const open=()=>openStopDetail({kind:'route',stop:s.stop,seq:+s.seq,dir:d,route:'284',st:'1',es});
+ el.onclick=open;el.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();open()}};list.append(el)})}
+const qv=()=>q.value.trim().toLowerCase();dir.onchange=fill;pick.onchange=render;q.oninput=render;r.onclick=load;init();
+</script>
+<script>
+const FK='kmbFavs';let favs=[];try{favs=JSON.parse(localStorage.getItem(FK)||'[]')}catch(e){}
+const saveF=()=>localStorage.setItem(FK,JSON.stringify(favs));let RL=null,fStops=[],fNames={},ferrK=null,lastF=null;
+const setErr=(k,v)=>{ferrK=k?[k,v]:null;ferr.textContent=k?T(k,v):''};
+t1.onclick=()=>{closeStopDetail();v1.style.display='';v2.style.display='none';t1.className='on';t2.className=''};
+t2.onclick=()=>{closeStopDetail();v2.style.display='';v1.style.display='none';t2.className='on';t1.className='';loadF()};
+async function routeList(){if(!RL){const c=sessionStorage.getItem('kmbRL');RL=c?JSON.parse(c):(await j('route/')).data;try{sessionStorage.setItem('kmbRL',JSON.stringify(RL))}catch(e){}}return RL}
+const fdirLabel=x=>T(x.bound=='O'?'O':'I')+T('colon')+nm(x,'orig')+' → '+nm(x,'dest')+(x.service_type!='1'?T('special',{n:x.service_type}):'');
+fgo.onclick=async()=>{setErr(null);[fdir,fstop,fsave].forEach(x=>x.style.display='none');const r=fr.value.trim().toUpperCase();if(!r){setErr('enterRoute');return}
+ try{const v=(await routeList()).filter(x=>x.route==r);if(!v.length){setErr('notFound',{r});return}
+ fdir.length=0;v.forEach((x,i)=>fdir.add(new Option(fdirLabel(x),i)));fdir._v=v;fdir.style.display='';await fdirCh()}catch(e){setErr('loadFail',{e:String(e)})}};
+function fillFstop(){const v=fstop.value;fstop.length=0;fStops.forEach((s,i)=>fstop.add(new Option(s.seq+'. '+nm(names[s.stop],'name'),i)));if(v!=='')fstop.value=v}
+async function fdirCh(){const x=fdir._v[fdir.value];const rs=await j('route-stop/'+x.route+'/'+(x.bound=='O'?'outbound':'inbound')+'/'+x.service_type);fStops=rs.data||[];
+ await Promise.all(fStops.map(async s=>{if(!names[s.stop])names[s.stop]=(await j('stop/'+s.stop)).data}));try{localStorage.setItem('kmb284names',JSON.stringify(names))}catch(e){}
+ fstop.length=0;fillFstop();fstop.style.display=fsave.style.display=''}
+fdir.onchange=fdirCh;
+fsave.onclick=()=>{const x=fdir._v[fdir.value],s=fStops[fstop.value],n=names[s.stop];const f={route:x.route,dir:x.bound,st:x.service_type,seq:+s.seq,stop:s.stop,name_tc:fx(n.name_tc),name_en:n.name_en,dest_tc:fx(x.dest_tc),name_sc:n.name_sc||t2s(fx(n.name_tc)),dest_sc:x.dest_sc||t2s(fx(x.dest_tc)),dest_en:x.dest_en};
+ if(favs.some(y=>y.route==f.route&&y.dir==f.dir&&y.st==f.st&&y.seq==f.seq)){setErr('dup');return}favs.push(f);saveF();loadF()};
+function drawF(){if(!lastF)return;const {res,ts,now}=lastF;
+ flist.innerHTML='';favs.forEach((f,i)=>{const d=res[i];const es=d?d.filter(e=>e.dir==f.dir&&e.seq==f.seq&&!(e.eta&&new Date(e.eta)<Date.now()-120000)):null;
+  const n=names[f.stop]||{name_tc:f.name_tc,name_en:f.name_en,name_sc:f.name_sc},dest={dest_tc:f.dest_tc,dest_sc:f.dest_sc,dest_en:f.dest_en||(es&&es[0]&&es[0].dest_en)||(d&&d.find(e=>e.dir==f.dir)||{}).dest_en};
+  const el=document.createElement('div');el.className='s fav';el.setAttribute('role','button');el.tabIndex=0;
+  el.innerHTML='<button class="del" data-i="'+i+'">'+T('del')+'</button><div class="n">'+esc(f.route)+' '+esc(T('to',{d:nm(dest,'dest')}))+'</div><div class="n" data-raw>'+f.seq+'. '+esc(nm(n,'name'))+'</div><div class="e" data-raw>'+esc(nm2(n,'name'))+'</div><div class="t">'+(es==null?T('failShort'):es.length?es.map(fmt).map(esc).join('<br>'):T('noEta'))+'</div>';
+  const open=()=>openStopDetail({kind:'fav',stop:f.stop,seq:f.seq,dir:f.dir,route:f.route,st:f.st,es:es||[],dest:dest,n:n});
+  el.onclick=ev=>{if(ev.target.closest('.del'))return;open()};el.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();open()}};flist.append(el)});
+ flist.querySelectorAll('.del').forEach(b=>b.onclick=ev=>{ev.stopPropagation();favs.splice(+b.dataset.i,1);saveF();loadF()});
+ fst.textContent=T('upd',{t:tm(now),d:ts?tm(ts):'—'})}
+async function loadF(){if(!favs.length){lastF=null;flist.innerHTML='<div class="s">'+T('noFavs')+'</div>';fst.textContent='';return}
+ const res=await Promise.all(favs.map(f=>j('eta/'+f.stop+'/'+encodeURIComponent(f.route)+'/'+f.st).then(r=>r.data||[]).catch(()=>null)));let ts=null;
+ res.forEach(d=>{if(d&&d[0])ts=new Date(d[0].data_timestamp)});lastF={res,ts,now:new Date()};drawF()}
+setInterval(()=>{if(v2.style.display!='none')loadF()},30000);
+// ---- 語言切換 ----
+lang.innerHTML=LANGS.map(([k,v])=>'<option value="'+k+'"'+(k==='mi'?' lang="mi"':'')+'>'+v+'</option>').join('');
+function applyLang(){document.documentElement.lang=LANG;lang.value=LANG;const lc=document.getElementById('lcodeT');if(lc)lc.textContent=LCODE[LANG]||LANG;document.title=T('title');
+ document.querySelectorAll('[data-tr]').forEach(e=>e.textContent=T(e.dataset.tr));document.querySelectorAll('[data-ip]').forEach(e=>e.placeholder=T(e.dataset.ip));
+ if(!lastSt)st.textContent=T('loading');else showSt();
+ fillDir();fill();if(fdir._v){const v=fdir.value;fdir.length=0;fdir._v.forEach((x,i)=>fdir.add(new Option(fdirLabel(x),i)));fdir.value=v;fillFstop()}
+ if(ferrK)ferr.textContent=T(ferrK[0],ferrK[1]);if(lastF)drawF();else if(v2.style.display!='none'&&document.getElementById('detail').style.display==='none')loadF();
+ if(document.getElementById('detail').style.display!=='none'&&typeof detailCtx!=='undefined'&&detailCtx){document.querySelectorAll('#detail [data-tr]').forEach(e=>e.textContent=T(e.dataset.tr));const n=names[detailCtx.stop]||detailCtx.n||{};const title=detailCtx.seq+'. '+nm(n,'name');const sub=nm2(n,'name');let head='';if(detailCtx.kind==='fav'){const dest=detailCtx.dest||{};head='<div class="n">'+esc(detailCtx.route)+' '+esc(T('to',{d:nm(dest,'dest')}))+'</div>';}const es=detailCtx.es||[];dinfo.innerHTML=head+'<div class="n" data-raw>'+esc(title)+'</div><div class="e" data-raw>'+esc(sub)+'</div><div class="t">'+(es.length?es.map(fmt).map(esc).join('<br>'):T('noEta'))+'</div>';const g=document.getElementById('dgeo');if(g&&g.classList.contains('loading'))g.textContent=T('geoLoading');const dm=document.getElementById('dmap');if(dm)dm.setAttribute('aria-label',T('mapAria'));}}
+lang.onchange=()=>{LANG=lang.value;localStorage.setItem('kmbLang',LANG);applyLang()};applyLang();
+</script>
+<script src="assets/leaflet.js"></script>
+<script>
+let mapInst=null,detailCtx=null,geoAbort=false;
+const reduceMotion=()=>window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+function destroyMap(){
+  geoAbort=true;
+  if(mapInst){try{mapInst.remove()}catch(e){} mapInst=null}
+  const m=document.getElementById('dmap'); if(m) m.innerHTML='';
+  const g=document.getElementById('dgeo'); if(g){g.className='geo-msg';g.textContent=''}
+  const pan=document.getElementById('dmapPanel'); if(pan) pan.classList.remove('enter');
+}
+function closeStopDetail(){
+  destroyMap(); detailCtx=null;
+  const d=document.getElementById('detail'); if(d) d.style.display='none';
+  if(t1.className==='on'){v1.style.display='';} else {v2.style.display='';}
+}
+function mkIcon(cls,title){
+  return L.divIcon({className:'',html:'<span class="'+cls+'" title="'+String(title).replace(/"/g,'&quot;')+'"></span>',iconSize:[22,22],iconAnchor:[11,11]});
+}
+function showGeoMsg(kind,text){
+  const g=document.getElementById('dgeo'); if(!g)return;
+  g.className='geo-msg'+(kind==='err'?' err':'')+(kind==='loading'?' loading':'')+(reduceMotion()?'':' fade');
+  g.textContent=text||'';
+}
+function fitOrView(map, stopLL, meLL){
+  if(meLL){map.fitBounds(L.latLngBounds([stopLL,meLL]).pad(0.35));}
+  else map.setView(stopLL,16);
+}
+function initMapAt(lat,lng,stopLabel){
+  destroyMap(); geoAbort=false;
+  const el=document.getElementById('dmap');
+  const pan=document.getElementById('dmapPanel');
+  pan.classList.remove('enter'); void pan.offsetWidth; if(!reduceMotion()) pan.classList.add('enter');
+  const map=L.map(el,{zoomControl:true,attributionControl:true});
+  mapInst=map;
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:19, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(map);
+  const stopLL=[lat,lng];
+  L.marker(stopLL,{icon:mkIcon('mk-stop'+(reduceMotion()?'':' pop'),T('mapStop')),title:stopLabel||T('mapStop')}).addTo(map)
+    .bindPopup(esc(stopLabel||T('mapStop')));
+  fitOrView(map, stopLL, null);
+  setTimeout(()=>{try{map.invalidateSize()}catch(e){}},80);
+  showGeoMsg('loading', T('geoLoading'));
+  if(!navigator.geolocation){showGeoMsg('err', T('geoFail')); return;}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    if(geoAbort||mapInst!==map)return;
+    const meLL=[pos.coords.latitude, pos.coords.longitude];
+    L.marker(meLL,{icon:mkIcon('mk-me'+(reduceMotion()?'':' pulse'),T('mapMe')),title:T('mapMe')}).addTo(map)
+      .bindPopup(T('mapMe'));
+    showGeoMsg('', '');
+    fitOrView(map, stopLL, meLL);
+  }, err=>{
+    if(geoAbort||mapInst!==map)return;
+    const denied=err&&(err.code===1);
+    showGeoMsg('err', denied?T('geoDenied'):T('geoFail'));
+  },{enableHighAccuracy:true,timeout:12000,maximumAge:30000});
+}
+function openStopDetail(ctx){
+  detailCtx=ctx;
+  v1.style.display='none'; v2.style.display='none';
+  document.getElementById('detail').style.display='block';
+  const n=names[ctx.stop]||ctx.n||{};
+  const title=ctx.seq+'. '+nm(n,'name');
+  const sub=nm2(n,'name');
+  let head='';
+  if(ctx.kind==='fav'){
+    const dest=ctx.dest||{};
+    head='<div class="n">'+esc(ctx.route)+' '+esc(T('to',{d:nm(dest,'dest')}))+'</div>';
+  }
+  const es=ctx.es||[];
+  dinfo.innerHTML=head+'<div class="n" data-raw>'+esc(title)+'</div><div class="e" data-raw>'+esc(sub)+'</div><div class="t">'+(es.length?es.map(fmt).map(esc).join('<br>'):T('noEta'))+'</div>';
+  document.getElementById('dmap').setAttribute('aria-label', T('mapAria'));
+  const info=names[ctx.stop];
+  const lat=info&&info.lat!=null&&info.lat!==''?+info.lat:NaN;
+  const lng=info&&info.long!=null&&info.long!==''?+info.long:NaN;
+  destroyMap();
+  const pan=document.getElementById('dmapPanel');
+  if(!Number.isFinite(lat)||!Number.isFinite(lng)){
+    pan.classList.remove('enter'); if(!reduceMotion()) pan.classList.add('enter');
+    document.getElementById('dmap').innerHTML='<div class="map-missing">'+esc(T('noCoord'))+'</div>';
+    showGeoMsg('','');
+    return;
+  }
+  if(typeof L==='undefined'){document.getElementById('dmap').innerHTML='<div class="map-missing">Leaflet</div>';return;}
+  initMapAt(lat,lng,title);
+}
+dback.onclick=closeStopDetail;
+</script>
 </body></html>
